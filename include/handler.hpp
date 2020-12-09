@@ -8,15 +8,15 @@
 
 namespace eagle {
 
-class handler_object;
+class stateful_handler;
 
-using handler_type = handler_object;
+using handler_type = stateful_handler;
 using handler_fn_type = std::function<bool(const request&, response&)>;
 
-class handler_object {
+class stateful_handler {
  public:
-  handler_object() = default;
-  virtual ~handler_object() = default;
+  stateful_handler() = default;
+  virtual ~stateful_handler() = default;
 
   virtual bool get(const request& req, response& resp) {
     LOG(WARNING) << "GET handler is not implemented for " << req.target()

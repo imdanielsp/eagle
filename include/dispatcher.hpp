@@ -29,7 +29,7 @@ class base_dispatcher {
                            handler_fn_type h_fn) = 0;
 
   virtual bool add_handler(const std::string& endpoint,
-                           handler_object& h_obj) = 0;
+                           stateful_handler& h_obj) = 0;
 
   virtual bool dispatch(const request& request, response& response) = 0;
 };
@@ -50,7 +50,7 @@ class dispatcher : public base_dispatcher {
   }
 
   bool add_handler(const std::string& endpoint,
-                   handler_object& h_obj) override {
+                   stateful_handler& h_obj) override {
     return install_object_handler_(endpoint, h_obj);
   }
 
@@ -87,8 +87,11 @@ class dispatcher : public base_dispatcher {
 
   bool dispatch_not_found_(response& resp) {
     resp.result(http::status::not_found);
-    resp.set(http::field::content_type, "text/html");
-    beast::ostream(resp.body()) << "<h2>404 - Not Found</h2>";
+    return true;
+  }
+
+  bool dispatch_method_not_allow_(response& resp) {
+    resp.result(http::status::method_not_allowed);
     return true;
   }
 
@@ -129,7 +132,7 @@ class dispatcher : public base_dispatcher {
   }
 
   bool install_object_handler_(const std::string& endpoint,
-                               handler_object& h_obj) {
+                               stateful_handler& h_obj) {
     if (has_at_least_one_function_handler_for_(endpoint)) {
       LOG(ERROR) << "There is at least one handler for [" << endpoint << "]"
                  << std::endl;
@@ -215,7 +218,7 @@ class dispatcher : public base_dispatcher {
     for_each(interceptors_ | filtered(policy_filter), executor);
   }
 
-  bool dispatch_with_(handler_object& object,
+  bool dispatch_with_(stateful_handler& object,
                       const request& req,
                       response& resp) {
     auto method = req.method();
@@ -247,7 +250,7 @@ class dispatcher : public base_dispatcher {
     auto handler_idx = dispatcher::get_index_for_verb_(req.method());
 
     if (!handler_list[handler_idx].second) {
-      return dispatch_not_found_(resp);
+      return dispatch_method_not_allow_(resp);
     }
 
     // TODO: We can do some post processing here instead of return
@@ -276,7 +279,7 @@ class dispatcher : public base_dispatcher {
                                 supported_method_idx::count>>
       dispatch_fn_table_;
 
-  std::unordered_map<std::string, std::reference_wrapper<handler_object>>
+  std::unordered_map<std::string, std::reference_wrapper<stateful_handler>>
       dispatch_object_table_;
 
   std::forward_list<std::pair<interception_policy, interceptor_type>>

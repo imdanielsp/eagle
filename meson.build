@@ -5,28 +5,37 @@ project('mmDNS', 'cpp',
 boost_dep = dependency('boost', modules : ['system', 'thread'])
 
 glog_dep = dependency('glog')
-gflags = dependency('gflags')
+gflags_dep = dependency('gflags')
 
-src = [
-
-]
+include_dir = include_directories('include')
 
 exe = executable('eagle',
-                 ['src/main.cc', src],
+                 ['src/main.cc'],
                  cpp_args : '-std=c++17',
-                 dependencies : [boost_dep, glog_dep, gflags])
+                 include_directories : include_dir,
+                 dependencies : [
+                   boost_dep,
+                   glog_dep,
+                   gflags_dep
+                 ])
 
-# gtest_dep = dependency('gtest', main : true, required : true)
-# gmock_dep = dependency('gmock', main : true, required : true)
+gtest_proj = subproject('gtest')
+gtest_dep = gtest_proj.get_variable('gtest_dep')
+gmock_dep = gtest_proj.get_variable('gmock_dep')
 
-# tests_src = [
-#   'tests/test_main.cc'
-# ]
+tests_src = [
+  'tests/main_test.cc',
+  'tests/dispatcher_test.cc'
+]
 
-# test_exec = executable('eagle_test', 
-#                        [src, dns_decoder_src, tests_src],
-#                        cpp_args : '-std=c++17',
-#                        dependencies: [
-#                            gtest_dep,
-#                            gmock_dep
-#                        ])
+test_exec = executable('eagle_test', 
+                       tests_src,
+                       cpp_args : '-std=c++17',
+                       include_directories : include_dir,
+                       dependencies: [
+                           boost_dep,
+                           glog_dep,
+                           gflags_dep,
+                           gtest_dep,
+                           gmock_dep
+                       ])

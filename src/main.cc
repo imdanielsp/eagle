@@ -1,7 +1,7 @@
 #include <iostream>
 #include "eagle.hpp"
 
-class h : public eagle::handler_object {
+class h : public eagle::stateful_handler {
  public:
   h() {}
   virtual ~h() {}

@@ -26,6 +26,8 @@ class app {
 
   ~app() = default;
 
+  // TODO: Return a system error code here so that cleints can write:
+  // int main() { return app.start(); }
   void start(std::optional<std::string> address = {},
              std::optional<uint16_t> port = {}) {
     server_address_ = address.value_or(FLAGS_address);
@@ -46,7 +48,7 @@ class app {
     dispatcher_.add_handler(method, endpoint, h_fn);
   }
 
-  void handle(const std::string& endpoint, handler_object& h_obj) {
+  void handle(const std::string& endpoint, stateful_handler& h_obj) {
     dispatcher_.add_handler(endpoint, h_obj);
   }
 
