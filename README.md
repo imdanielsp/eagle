@@ -1,4 +1,4 @@
-![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg)
+![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle?ref=badge_shield)
 # Eagle
 A Minimalistic C++ Web Framework build on top of Boost Beast and ASIO
 
