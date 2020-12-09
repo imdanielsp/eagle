@@ -19,9 +19,9 @@ int main(argc, argv) {
              return true;
            });
 
-app.start();
+  app.start();
 
-return 0;
+  return 0;
 }
 ```
 
@@ -60,6 +60,7 @@ int main(argc, argv) {
   app.start();
 
   return 0;
+}
 ```
 
 ## Building
