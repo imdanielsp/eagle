@@ -1,0 +1,24 @@
+name: Eagle CI Build
+
+on:
+  push:
+    branches: [ mainline ]
+  pull_request:
+    branches: [ mainline ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: configure
+      run: |
+        brew install meson 
+        brew install boost
+        meson builddir
+    - name: build
+      run: |
+        cd builddir
+        meson compile
