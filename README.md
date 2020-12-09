@@ -1,3 +1,4 @@
+![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg)
 # Eagle
 A Minimalistic C++ Web Framework build on top of Boost Beast and ASIO
 
