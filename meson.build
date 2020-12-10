@@ -1,4 +1,4 @@
-project('mmDNS', 'cpp',
+project('eagle', 'cpp',
     version : '1.0.0',
     license : 'MIT')
 
@@ -31,7 +31,12 @@ tests_src = [
 
 test_exec = executable('eagle_test', 
                        tests_src,
-                       cpp_args : '-std=c++17',
+                       cpp_args : [
+                         '-std=c++17',
+                         '-fprofile-instr-generate',
+                         '-fcoverage-mapping'
+                       ],
+                       link_args : ['-fprofile-instr-generate'],
                        include_directories : include_dir,
                        dependencies: [
                            boost_dep,
