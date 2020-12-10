@@ -34,7 +34,7 @@
 builddir
 subprojects/*
 !/subprojects/*.wrap
-*.lcov
+*.info
 *.profdata
 *.profraw
-test_coverage/
+test_coverage_result/
