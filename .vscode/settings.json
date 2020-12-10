@@ -81,6 +81,10 @@
     "strstream": "cpp",
     "unordered_set": "cpp",
     "forward_list": "cpp",
-    "filesystem": "cpp"
+    "filesystem": "cpp",
+    "fstream": "cpp",
+    "queue": "cpp",
+    "stack": "cpp",
+    "valarray": "cpp"
   }
 }

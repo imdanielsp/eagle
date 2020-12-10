@@ -3,13 +3,17 @@
 
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <type_traits>
+
+#include <cstdint>
+#include <optional>
+#include <string_view>
+
 #include "common.hpp"
 #include "connection.hpp"
 #include "dispatcher.hpp"
+#include "handler.hpp"
 
 namespace eagle {
 
@@ -43,12 +47,12 @@ class app {
   }
 
   void handle(http::verb method,
-              const std::string& endpoint,
+              std::string_view endpoint,
               handler_fn_type h_fn) {
     dispatcher_.add_handler(method, endpoint, h_fn);
   }
 
-  void handle(const std::string& endpoint, stateful_handler& h_obj) {
+  void handle(std::string_view endpoint, stateful_handler& h_obj) {
     dispatcher_.add_handler(endpoint, h_obj);
   }
 

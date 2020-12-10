@@ -25,7 +25,8 @@ gmock_dep = gtest_proj.get_variable('gmock_dep')
 
 tests_src = [
   'tests/main_test.cc',
-  'tests/dispatcher_test.cc'
+  'tests/dispatcher_test.cc',
+  'tests/handler_registry_test.cc'
 ]
 
 test_exec = executable('eagle_test', 

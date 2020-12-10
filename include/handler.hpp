@@ -22,14 +22,14 @@ class stateful_handler {
     LOG(WARNING) << "GET handler is not implemented for " << req.target()
                  << std::endl;
 
-    resp.result(http::status::not_found);
+    resp.result(http::status::method_not_allowed);
     return false;
   }
 
   virtual bool post(const request& req, response& resp) {
     LOG(WARNING) << "POST handler is not implemented for " << req.target()
                  << std::endl;
-    resp.result(http::status::not_found);
+    resp.result(http::status::method_not_allowed);
     return false;
   }
 
@@ -37,13 +37,13 @@ class stateful_handler {
     LOG(WARNING) << "PUT handler is not implemented for " << req.target()
                  << std::endl;
     return false;
-    resp.result(http::status::not_found);
+    resp.result(http::status::method_not_allowed);
   }
 
   virtual bool del(const request& req, response& resp) {
     LOG(WARNING) << "DELETE handler is not implemented for " << req.target()
                  << std::endl;
-    resp.result(http::status::not_found);
+    resp.result(http::status::method_not_allowed);
     return false;
   }
 };

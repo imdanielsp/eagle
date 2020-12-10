@@ -1,6 +1,5 @@
 #include <glog/logging.h>
 #include <gtest/gtest.h>
-#include "dispatcher.hpp"
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);

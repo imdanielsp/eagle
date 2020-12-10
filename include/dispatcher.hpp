@@ -8,11 +8,12 @@
 #include <forward_list>
 #include <functional>
 #include <optional>
-#include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "common.hpp"
 #include "handler.hpp"
+#include "handler_registry.hpp"
 
 using namespace boost::adaptors;
 using namespace boost::range;
@@ -25,10 +26,10 @@ class base_dispatcher {
   virtual ~base_dispatcher() = default;
 
   virtual bool add_handler(http::verb method,
-                           const std::string& endpoint,
+                           std::string_view endpoint,
                            handler_fn_type h_fn) = 0;
 
-  virtual bool add_handler(const std::string& endpoint,
+  virtual bool add_handler(std::string_view endpoint,
                            stateful_handler& h_obj) = 0;
 
   virtual bool dispatch(const request& request, response& response) = 0;
@@ -44,12 +45,12 @@ class dispatcher : public base_dispatcher {
   }
 
   bool add_handler(http::verb method,
-                   const std::string& endpoint,
+                   std::string_view endpoint,
                    handler_fn_type h_fn) override {
     return install_fn_handler_(method, endpoint, h_fn);
   }
 
-  bool add_handler(const std::string& endpoint,
+  bool add_handler(std::string_view endpoint,
                    stateful_handler& h_obj) override {
     return install_object_handler_(endpoint, h_obj);
   }
@@ -60,12 +61,13 @@ class dispatcher : public base_dispatcher {
     bool status = true;
     auto target_endpoint = std::string{req.target()};
     if (has_object_handler_for_(target_endpoint)) {
-      auto object = dispatch_object_table_.find(target_endpoint)->second;
-      status = dispatch_with_(object, req, resp);
+      auto [opt_object, _] =
+          handler_object_registry_.get_handler_for(target_endpoint);
+      status = dispatch_with_(opt_object.value().get(), req, resp);
     } else if (has_at_least_one_function_handler_for_(target_endpoint)) {
-      const auto& handler_list =
-          dispatch_fn_table_.find(target_endpoint)->second;
-      status = dispatch_with_(handler_list, req, resp);
+      auto [opt_handler_list, _] =
+          handler_fn_registry_.get_handler_for(target_endpoint);
+      status = dispatch_with_(opt_handler_list.value(), req, resp);
     } else {
       status = dispatch_not_found_(resp);
     }
@@ -82,11 +84,10 @@ class dispatcher : public base_dispatcher {
   }
 
  private:
-  // Allow allow  (GET, POST, PUT, and DELETE)
-  enum supported_method_idx : size_t { get = 0, post, put, del, count };
-
   bool dispatch_not_found_(response& resp) {
     resp.result(http::status::not_found);
+    resp.set(http::field::content_type, "text/html");
+    boost::beast::ostream(resp.body()) << "<h2>404 - Not Found</h2>";
     return true;
   }
 
@@ -96,7 +97,7 @@ class dispatcher : public base_dispatcher {
   }
 
   bool install_fn_handler_(http::verb method,
-                           const std::string& endpoint,
+                           std::string_view endpoint,
                            handler_fn_type h_fn) {
     if (has_object_handler_for_(endpoint)) {
       LOG(ERROR) << "There is an object handler for [" << method << " "
@@ -104,34 +105,10 @@ class dispatcher : public base_dispatcher {
       return false;
     }
 
-    auto itr = dispatch_fn_table_.find(endpoint);
-    auto method_idx = dispatcher::get_index_for_verb_(method);
-
-    if (itr != dispatch_fn_table_.end()) {
-      if (itr->second[method_idx].second) {
-        // The handler is set and overwriting a handler is likely and error log
-        // the error and fail.
-        return emit_overwrite_error_(method, endpoint);
-      }
-
-      itr->second[method_idx].second = h_fn;
-    } else {
-      std::array<std::pair<http::verb, handler_fn_type>,
-                 supported_method_idx::count>
-          handler_pair_list;
-      handler_pair_list[method_idx] = std::make_pair(method, h_fn);
-      auto [_, emplaced] = dispatch_fn_table_.try_emplace(
-          endpoint, std::move(handler_pair_list));
-
-      if (!emplaced) {
-        return emit_emplace_error_(method, endpoint);
-      }
-    }
-
-    return true;
+    return handler_fn_registry_.register_handler(method, endpoint, h_fn);
   }
 
-  bool install_object_handler_(const std::string& endpoint,
+  bool install_object_handler_(std::string_view endpoint,
                                stateful_handler& h_obj) {
     if (has_at_least_one_function_handler_for_(endpoint)) {
       LOG(ERROR) << "There is at least one handler for [" << endpoint << "]"
@@ -139,55 +116,35 @@ class dispatcher : public base_dispatcher {
       return false;
     }
 
-    auto itr = dispatch_object_table_.find(endpoint);
-    if (itr != dispatch_object_table_.end()) {
+    if (has_object_handler_for_(endpoint)) {
       // The handler is set and overwriting a handler is likely and error log
       // the error and fail.
       return emit_overwrite_error_(std::nullopt, endpoint);
     }
 
-    auto [_, emplaced] = dispatch_object_table_.try_emplace(endpoint, h_obj);
+    // By policy, an object handler handles GET, POST, PUT and DELETE and the
+    // regitry implementation knows that. We pass a std::nullopt because the
+    // method is undefined
+    auto registered = handler_object_registry_.register_handler(
+        std::nullopt, endpoint, std::reference_wrapper(h_obj));
 
-    if (!emplaced) {
+    if (!registered) {
       return emit_emplace_error_(std::nullopt, endpoint);
     }
 
     return true;
   }
 
-  bool has_at_least_one_function_handler_for_(
-      const std::string& endpoint) const {
-    return dispatch_fn_table_.find(endpoint) != dispatch_fn_table_.end();
+  bool has_at_least_one_function_handler_for_(std::string_view endpoint) const {
+    return handler_fn_registry_.has(endpoint);
   }
 
-  bool has_object_handler_for_(const std::string& endpoint) const {
-    return dispatch_object_table_.find(endpoint) !=
-           dispatch_object_table_.end();
-  }
-
-  static supported_method_idx get_index_for_verb_(http::verb method) {
-    switch (method) {
-      case http::verb::get:
-        return supported_method_idx::get;
-        break;
-      case http::verb::post:
-        return supported_method_idx::post;
-        break;
-      case http::verb::put:
-        return supported_method_idx::put;
-        break;
-      case http::verb::delete_:
-        return supported_method_idx::del;
-        break;
-      default:
-        LOG(ERROR) << "Unsupported method index " << method << std::endl;
-        assert(false);
-        break;
-    }
+  bool has_object_handler_for_(std::string_view endpoint) const {
+    return handler_object_registry_.has(endpoint);
   }
 
   bool emit_overwrite_error_(std::optional<http::verb> method,
-                             const std::string& endpoint) {
+                             std::string_view endpoint) {
     // The handler is set and overwriting a handler is likely and error log
     // the error and fail.
     LOG(ERROR) << "Handler overwrite is not allow, endpoint: ["
@@ -197,7 +154,7 @@ class dispatcher : public base_dispatcher {
   }
 
   bool emit_emplace_error_(std::optional<http::verb> method,
-                           const std::string& endpoint) {
+                           std::string_view endpoint) {
     // The handler is set and overwriting a handler is likely and error log
     // the error and fail.
     LOG(ERROR) << "Failed to emplace in dispatch table for ["
@@ -247,7 +204,7 @@ class dispatcher : public base_dispatcher {
                        supported_method_idx::count>& handler_list,
       const request& req,
       response& resp) {
-    auto handler_idx = dispatcher::get_index_for_verb_(req.method());
+    auto handler_idx = eagle::detail::get_index_for_verb(req.method());
 
     if (!handler_list[handler_idx].second) {
       return dispatch_method_not_allow_(resp);
@@ -274,13 +231,8 @@ class dispatcher : public base_dispatcher {
  private:
   // TODO: Could this be a std::multimap? Need to investigate if/how that
   // would work
-  std::unordered_map<std::string,
-                     std::array<std::pair<http::verb, handler_fn_type>,
-                                supported_method_idx::count>>
-      dispatch_fn_table_;
-
-  std::unordered_map<std::string, std::reference_wrapper<stateful_handler>>
-      dispatch_object_table_;
+  handler_registry<handler_fn_type> handler_fn_registry_;
+  handler_registry<handler_type> handler_object_registry_;
 
   std::forward_list<std::pair<interception_policy, interceptor_type>>
       interceptors_;
