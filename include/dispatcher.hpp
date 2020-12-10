@@ -59,15 +59,24 @@ class dispatcher : public base_dispatcher {
     execute_interceptors_with_(intercept_policy_before::value, req, resp);
 
     bool status = true;
-    auto target_endpoint = std::string{req.target()};
+    auto target_endpoint =
+        std::string_view(req.target().data(), req.target().size());
+
     if (has_object_handler_for_(target_endpoint)) {
       auto [opt_object, _] =
-          handler_object_registry_.get_handler_for(target_endpoint);
+          handler_object_registry_.get_handler_for(all_method, target_endpoint);
       status = dispatch_with_(opt_object.value().get(), req, resp);
-    } else if (has_at_least_one_function_handler_for_(target_endpoint)) {
+    } else if (has_function_handler_for_endpoint_and_method_(target_endpoint,
+                                                             req.method())) {
       auto [opt_handler_list, _] =
-          handler_fn_registry_.get_handler_for(target_endpoint);
+          handler_fn_registry_.get_handler_for(req.method(), target_endpoint);
       status = dispatch_with_(opt_handler_list.value(), req, resp);
+    } else if (has_at_least_one_function_handler_for_(target_endpoint)) {
+      // If we are here it means that there isn't a object handler nor a
+      // function handler for the (method, endpoint) pair, but there at least
+      // one handler installed for the endpoint; therefore we dispatch a method
+      // not allow error.
+      status = dispatch_method_not_allow_(resp);
     } else {
       status = dispatch_not_found_(resp);
     }
@@ -123,10 +132,9 @@ class dispatcher : public base_dispatcher {
     }
 
     // By policy, an object handler handles GET, POST, PUT and DELETE and the
-    // regitry implementation knows that. We pass a std::nullopt because the
-    // method is undefined
+    // regitry implementation knows that, we don't need to specify a method.
     auto registered = handler_object_registry_.register_handler(
-        std::nullopt, endpoint, std::reference_wrapper(h_obj));
+        endpoint, std::reference_wrapper(h_obj));
 
     if (!registered) {
       return emit_emplace_error_(std::nullopt, endpoint);
@@ -136,11 +144,19 @@ class dispatcher : public base_dispatcher {
   }
 
   bool has_at_least_one_function_handler_for_(std::string_view endpoint) const {
-    return handler_fn_registry_.has(endpoint);
+    return handler_fn_registry_.has(http::verb::get, endpoint) ||
+           handler_fn_registry_.has(http::verb::post, endpoint) ||
+           handler_fn_registry_.has(http::verb::put, endpoint) ||
+           handler_fn_registry_.has(http::verb::delete_, endpoint);
+  }
+
+  bool has_function_handler_for_endpoint_and_method_(std::string_view endpoint,
+                                                     http::verb method) {
+    return handler_fn_registry_.has(method, endpoint);
   }
 
   bool has_object_handler_for_(std::string_view endpoint) const {
-    return handler_object_registry_.has(endpoint);
+    return handler_object_registry_.has(all_method, endpoint);
   }
 
   bool emit_overwrite_error_(std::optional<http::verb> method,
@@ -199,19 +215,11 @@ class dispatcher : public base_dispatcher {
     }
   }
 
-  bool dispatch_with_(
-      const std::array<std::pair<http::verb, handler_fn_type>,
-                       supported_method_idx::count>& handler_list,
-      const request& req,
-      response& resp) {
-    auto handler_idx = eagle::detail::get_index_for_verb(req.method());
-
-    if (!handler_list[handler_idx].second) {
-      return dispatch_method_not_allow_(resp);
-    }
-
+  bool dispatch_with_(handler_fn_type h_fn,
+                      const request& req,
+                      response& resp) {
     // TODO: We can do some post processing here instead of return
-    return handler_list[handler_idx].second(req, resp);
+    return h_fn(req, resp);
   }
 
   void write_log_for_(const request& req, const response& resp) {
@@ -220,7 +228,7 @@ class dispatcher : public base_dispatcher {
     std::time_t now =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     std::string date_time(30, '\0');
-    std::strftime(&date_time[0], date_time.size(), "%Y-%m-%d %H:%M:%S",
+    std::strftime(date_time.data(), date_time.size(), "%Y-%m-%d %H:%M:%S",
                   std::localtime(&now));
 
     LOG(INFO) << req.at(http::field::host) << " - - [" << date_time << "] "

@@ -2,6 +2,7 @@
 #include <gtest/gtest.h>
 
 #include "dispatcher.hpp"
+#include "test_utils.hpp"
 
 using ::testing::_;
 
@@ -16,17 +17,6 @@ class DispatcherTest : public ::testing::Test {
   eagle::request request_;
   eagle::response response_;
   eagle::dispatcher dispatcher_;
-};
-
-class HandlerMock : public eagle::stateful_handler {
- public:
-  MOCK_METHOD(bool, get, (const eagle::request&, eagle::response&), (override));
-  MOCK_METHOD(bool,
-              post,
-              (const eagle::request&, eagle::response&),
-              (override));
-  MOCK_METHOD(bool, put, (const eagle::request&, eagle::response&), (override));
-  MOCK_METHOD(bool, del, (const eagle::request&, eagle::response&), (override));
 };
 
 TEST_F(DispatcherTest, DispatchGetHandlerFn) {
