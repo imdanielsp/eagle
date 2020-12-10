@@ -37,4 +37,4 @@ subprojects/*
 *.info
 *.profdata
 *.profraw
-test_coverage_result/
+coverage/
