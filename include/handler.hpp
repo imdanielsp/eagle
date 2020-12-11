@@ -61,8 +61,8 @@ class stateful_handler_base : public handler_interface {
   bool put(const request& req, response& resp) override {
     LOG(WARNING) << "PUT handler is not implemented for " << req.target()
                  << std::endl;
-    return true;
     resp.result(http::status::method_not_allowed);
+    return true;
   }
 
   bool del(const request& req, response& resp) override {
