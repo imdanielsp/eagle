@@ -20,7 +20,7 @@ using std::string_view;
 inline constexpr std::nullopt_t all_method{std::nullopt};
 
 // Allow allow  (GET, POST, PUT, and DELETE)
-enum supported_method : size_t { get = 0, post, put, del, count };
+enum supported_method : size_t { get = 0, post, put, del, count, invalid };
 
 namespace detail {
 
@@ -37,20 +37,15 @@ inline constexpr supported_method get_index_for_verb(http::verb method) {
   switch (method) {
     case http::verb::get:
       return supported_method::get;
-      break;
     case http::verb::post:
       return supported_method::post;
-      break;
     case http::verb::put:
       return supported_method::put;
-      break;
     case http::verb::delete_:
       return supported_method::del;
-      break;
     default:
       LOG(ERROR) << "Unsupported method index " << method << std::endl;
-      assert(false);
-      break;
+      return supported_method::invalid;
   }
 }
 

@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <optional>
 #include <string_view>
+#include <type_traits>
 
 #include "common.hpp"
 #include "connection.hpp"
@@ -20,7 +21,33 @@ namespace eagle {
 DEFINE_string(address, "127.0.0.1", "Server address");
 DEFINE_uint32(port, 3003, "Server port number");
 
+// Forward declaration of the `app` template class.
+template <typename ConnectionType = connection>
+class app;
+
+// Template deduction guide for the initialization. This tells the compiler,
+// that when you call an app constructor matching `app(int argc, char* argv[])`,
+// the type of the template should be `app<ConnectionType>`, which by default is
+// an `eagle::connection`. This deduction allows clien code to instanciate
+// `eagle::app` objects without passing any templates parameters and not using
+// the empty template syntax: `eagle::app<> app(...)`. In addition, we get to
+// use dependecy injection via a template parameter for the connection given
+// that `ConnectionType` implements `connection_interface`. Unit test can then
+// write `eagle::app<mock_connection> app(...)` and test the app without an
+// actual TCP connection.
+//
+/// See:
+// https://isocpp.org/blog/2017/09/quick-q-what-are-template-deduction-guides-in-cpp17
+template <typename ConnectionType = connection>
+app(int argc, char* argv[]) -> app<ConnectionType>;
+
+template <typename ConnectionType>
 class app {
+  static_assert(std::is_base_of<connection_interface, ConnectionType>::value,
+                "ConnectionType must implement connection_interface");
+  static_assert(std::is_final<ConnectionType>::value,
+                "ConnectionType should be final");
+
  public:
   app(int argc, char* argv[]) : dispatcher_() {
     gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -52,7 +79,7 @@ class app {
     dispatcher_.add_handler(method, endpoint, h_fn);
   }
 
-  void handle(std::string_view endpoint, stateful_handler& h_obj) {
+  void handle(std::string_view endpoint, handler_type& h_obj) {
     dispatcher_.add_handler(endpoint, h_obj);
   }
 
@@ -69,8 +96,8 @@ class app {
         exit(ec.value());
       }
 
-      std::make_shared<connection>(dispatcher_, std::move(socket_))
-          ->handle_request();
+      std::make_shared<ConnectionType>(dispatcher_, std::move(socket_))
+          ->handle_data();
 
       accept_connection(acceptor);
     });
@@ -83,4 +110,5 @@ class app {
   std::string server_address_;
   uint16_t server_port_;
 };
+
 }  // namespace eagle

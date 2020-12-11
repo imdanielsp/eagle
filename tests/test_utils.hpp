@@ -3,7 +3,7 @@
 
 #include <gmock/gmock.h>
 
-class HandlerMock : public eagle::stateful_handler {
+class HandlerMock : public eagle::handler_type {
  public:
   MOCK_METHOD(bool, get, (const eagle::request&, eagle::response&), (override));
   MOCK_METHOD(bool,

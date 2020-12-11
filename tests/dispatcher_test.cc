@@ -144,3 +144,78 @@ TEST_F(DispatcherTest, HandlerReturnFalseYieldInternalError) {
 
   ASSERT_EQ(response_.result(), http::status::internal_server_error);
 }
+
+TEST_F(DispatcherTest, AddObjectHandlerWithFunctionHandler) {
+  auto result = dispatcher_.add_handler(
+      http::verb::get, "/endpoint",
+      [](const auto& req, auto& resp) { return false; });
+  EXPECT_TRUE(result);
+
+  HandlerMock mockHandler;
+  result = dispatcher_.add_handler("/endpoint", mockHandler);
+  EXPECT_FALSE(result);
+}
+
+TEST_F(DispatcherTest, AddFunctionHandlerWithObjectHandler) {
+  HandlerMock mockHandler;
+  auto result = dispatcher_.add_handler("/endpoint", mockHandler);
+  EXPECT_TRUE(result);
+
+  result = dispatcher_.add_handler(
+      http::verb::get, "/endpoint",
+      [](const auto& req, auto& resp) { return false; });
+  EXPECT_FALSE(result);
+}
+
+TEST_F(DispatcherTest, TryOvewriteObjectHandler) {
+  HandlerMock mockHandler;
+  auto result = dispatcher_.add_handler("/endpoint", mockHandler);
+  EXPECT_TRUE(result);
+
+  result = dispatcher_.add_handler("/endpoint", mockHandler);
+  EXPECT_FALSE(result);
+}
+
+TEST_F(DispatcherTest, AddInterceptorAfter) {
+  dispatcher_.add_interceptor(eagle::intercept_policy_after::value,
+                              [](const auto& req, auto& resp) {
+                                resp.result(http::status::bad_request);
+                              });
+  auto result = dispatcher_.add_handler(http::verb::get, "/endpoint",
+                                        [](const auto& req, auto& resp) {
+                                          resp.result(http::status::ok);
+                                          return true;
+                                        });
+  EXPECT_TRUE(result);
+
+  result = dispatcher_.dispatch(request_, response_);
+  EXPECT_TRUE(result);
+
+  EXPECT_EQ(response_.result(), http::status::bad_request);
+}
+
+TEST_F(DispatcherTest, AddInterceptorBefore) {
+  dispatcher_.add_interceptor(eagle::intercept_policy_before::value,
+                              [](const auto& req, auto& resp) {
+                                resp.result(http::status::bad_request);
+                              });
+  auto result =
+      dispatcher_.add_handler(http::verb::get, "/endpoint",
+                              [](const auto& req, auto& resp) { return true; });
+  EXPECT_TRUE(result);
+
+  result = dispatcher_.dispatch(request_, response_);
+  EXPECT_TRUE(result);
+
+  EXPECT_EQ(response_.result(), http::status::bad_request);
+}
+
+TEST_F(DispatcherTest, UnsupportedMethod) {
+  HandlerMock mockHandler;
+  auto result = dispatcher_.add_handler("/endpoint", mockHandler);
+  EXPECT_TRUE(result);
+
+  request_.method(http::verb::move);
+  result = dispatcher_.dispatch(request_, response_);
+  EXPECT_FALSE(result);
+}

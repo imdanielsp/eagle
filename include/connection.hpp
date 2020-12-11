@@ -7,27 +7,39 @@
 
 namespace eagle {
 
-class app;
-
-class connection : public std::enable_shared_from_this<connection> {
+class connection_interface {
  public:
-  connection(base_dispatcher& dispt, tcp::socket socket)
+  connection_interface() = default;
+  virtual ~connection_interface() = default;
+
+  virtual void handle_data() = 0;
+  virtual void send_data() = 0;
+};
+
+class connection final : public connection_interface,
+                         public std::enable_shared_from_this<connection> {
+ public:
+  connection(dispatcher_interface& dispt, tcp::socket socket)
       : dispatcher_(dispt), socket_(std::move(socket)) {}
   ~connection() = default;
 
+  void handle_data() override { handle_request_(); }
+
+  void send_data() override { send_response_(); }
+
  private:
-  void handle_request() {
+  void handle_request_() {
     http::async_read(socket_, buffer_, request_,
                      [conn = shared_from_this()](
                          beast::error_code ec, std::size_t bytes_transferred) {
                        // TODO: The dispatcher could fail, what do we do?
                        conn->dispatcher_.dispatch(conn->request_,
                                                   conn->response_);
-                       conn->send_response();
+                       conn->send_data();
                      });
   }
 
-  void send_response() {
+  void send_response_() {
     response_.content_length(response_.body().size());
     http::async_write(
         socket_, response_,
@@ -43,18 +55,14 @@ class connection : public std::enable_shared_from_this<connection> {
     });
   }
 
-  tcp::socket& get_socket() { return socket_; }
-
  private:
-  friend app;
-
-  base_dispatcher& dispatcher_;
+  dispatcher_interface& dispatcher_;
 
   tcp::socket socket_;
   beast::flat_buffer buffer_{8192};
   request request_;
 
   response response_;
-  net::steady_timer deadline_{socket_.get_executor(), std::chrono::seconds(20)};
+  net::steady_timer deadline_{socket_.get_executor(), std::chrono::seconds(10)};
 };
 };  // namespace eagle

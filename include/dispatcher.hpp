@@ -20,22 +20,21 @@ using namespace boost::range;
 
 namespace eagle {
 
-class base_dispatcher {
+class dispatcher_interface {
  public:
-  base_dispatcher() {}
-  virtual ~base_dispatcher() = default;
+  dispatcher_interface() {}
+  virtual ~dispatcher_interface() = default;
 
   virtual bool add_handler(http::verb method,
                            std::string_view endpoint,
                            handler_fn_type h_fn) = 0;
 
-  virtual bool add_handler(std::string_view endpoint,
-                           stateful_handler& h_obj) = 0;
+  virtual bool add_handler(std::string_view endpoint, handler_type& h_obj) = 0;
 
   virtual bool dispatch(const request& request, response& response) = 0;
 };
 
-class dispatcher : public base_dispatcher {
+class dispatcher : public dispatcher_interface {
  public:
   dispatcher() {}
   ~dispatcher() = default;
@@ -50,8 +49,7 @@ class dispatcher : public base_dispatcher {
     return install_fn_handler_(method, endpoint, h_fn);
   }
 
-  bool add_handler(std::string_view endpoint,
-                   stateful_handler& h_obj) override {
+  bool add_handler(std::string_view endpoint, handler_type& h_obj) override {
     return install_object_handler_(endpoint, h_obj);
   }
 
@@ -117,8 +115,7 @@ class dispatcher : public base_dispatcher {
     return handler_fn_registry_.register_handler(method, endpoint, h_fn);
   }
 
-  bool install_object_handler_(std::string_view endpoint,
-                               stateful_handler& h_obj) {
+  bool install_object_handler_(std::string_view endpoint, handler_type& h_obj) {
     if (has_at_least_one_function_handler_for_(endpoint)) {
       LOG(ERROR) << "There is at least one handler for [" << endpoint << "]"
                  << std::endl;
@@ -191,27 +188,22 @@ class dispatcher : public base_dispatcher {
     for_each(interceptors_ | filtered(policy_filter), executor);
   }
 
-  bool dispatch_with_(stateful_handler& object,
+  bool dispatch_with_(handler_type& object,
                       const request& req,
                       response& resp) {
     auto method = req.method();
     switch (method) {
       case http::verb::get:
         return object.get(req, resp);
-        break;
       case http::verb::post:
         return object.post(req, resp);
-        break;
       case http::verb::put:
         return object.put(req, resp);
-        break;
       case http::verb::delete_:
         return object.del(req, resp);
-        break;
       default:
         LOG(ERROR) << "Unsupported method " << method << std::endl;
-        assert(false);
-        break;
+        return false;
     }
   }
 
