@@ -11,7 +11,9 @@ include_dir = include_directories('include')
 
 exe = executable('eagle',
                  ['src/main.cc'],
-                 cpp_args : '-std=c++17',
+                 cpp_args : [
+                   '-std=c++17',
+                 ],
                  include_directories : include_dir,
                  dependencies : [
                    boost_dep,

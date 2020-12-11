@@ -1,10 +1,10 @@
 #!/bin/sh
 
-TEST_EXEC=./builddir/eagle_test
+BUILD_DIR=./builddir
+TEST_EXEC=$BUILD_DIR/eagle_test
 
 meson compile -C builddir
-$TEST_EXEC
-llvm-profdata merge -sparse default.profraw -o default.profdata
-llvm-cov report $TEST_EXEC -instr-profile=default.profdata
-llvm-cov export $TEST_EXEC -instr-profile=default.profdata -format=lcov include src > default.info
-genhtml -t "Eagle Test Coverage" default.info --output-directory test_coverage_result
+LLVM_PROFILE_FILE=$BUILD_DIR/default.profraw $TEST_EXEC
+llvm-profdata merge -sparse $BUILD_DIR/default.profraw -o $BUILD_DIR/default.profdata
+llvm-cov export $TEST_EXEC -instr-profile=$BUILD_DIR/default.profdata -format=lcov include src > $BUILD_DIR/default.info
+genhtml -t "Eagle Test Coverage" $BUILD_DIR/default.info --output-directory coverage
