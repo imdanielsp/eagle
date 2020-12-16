@@ -168,6 +168,11 @@ struct handler_trait<handler_fn_type> {
 
       auto handler_idx =
           get_index_for_verb(method.value_or(http::verb::unknown));
+
+      if (handler_idx == invalid) {
+        return std::make_pair(std::nullopt, false);
+      }
+
       auto handler = itr->second[handler_idx];
 
       if (!handler) {

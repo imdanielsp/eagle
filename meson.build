@@ -4,22 +4,37 @@ project('eagle', 'cpp',
 
 boost_dep = dependency('boost', modules : ['system', 'thread'])
 
-glog_dep = dependency('glog')
-gflags_dep = dependency('gflags')
-
 include_dir = include_directories('include')
 
+src = [
+  'src/app.cc',
+  'src/common.cc',
+  'src/connection.cc',
+  'src/dispatcher.cc',
+  'src/handler_registry.cc',
+  'src/handler.cc',
+  'src/request.cc'
+]
+
+lib = library('eagle',
+              [src],
+              version: '1.0.0',
+              soversion : '0',
+              cpp_args : [
+                '-std=c++17',
+              ],
+              include_directories : include_dir,
+              dependencies : [
+                   boost_dep
+              ])
+
 exe = executable('eagle',
-                 ['src/main.cc'],
+                 'src/main.cc',
                  cpp_args : [
                    '-std=c++17',
                  ],
                  include_directories : include_dir,
-                 dependencies : [
-                   boost_dep,
-                   glog_dep,
-                   gflags_dep
-                 ])
+                 link_with : lib)
 
 gtest_proj = subproject('gtest')
 gtest_dep = gtest_proj.get_variable('gtest_dep')
@@ -33,18 +48,16 @@ tests_src = [
 ]
 
 test_exec = executable('eagle_test', 
-                       tests_src,
+                       [tests_src],
                        cpp_args : [
                          '-std=c++17',
                          '-fprofile-instr-generate',
                          '-fcoverage-mapping'
                        ],
+                       link_with : lib,
                        link_args : ['-fprofile-instr-generate'],
                        include_directories : include_dir,
                        dependencies: [
-                           boost_dep,
-                           glog_dep,
-                           gflags_dep,
                            gtest_dep,
                            gmock_dep
                        ])

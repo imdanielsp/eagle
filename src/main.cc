@@ -1,5 +1,5 @@
+#include <eagle.hpp>
 #include <iostream>
-#include "eagle.hpp"
 
 class h : public eagle::stateful_handler_base {
  public:
@@ -20,7 +20,7 @@ class h : public eagle::stateful_handler_base {
 };
 
 int main(int argc, char* argv[]) {
-  eagle::app app{argc, argv};
+  eagle::app app;
 
   app.intercept([](const auto&, auto& resp) {
     std::cout << "Intercepting before the handler is called" << std::endl;
@@ -52,6 +52,9 @@ int main(int argc, char* argv[]) {
   h handler;
   app.handle("/api/v1/users", handler);
 
+  // app.handle("/user/{int:id}", [](const auto& req, auto& resp) {
+  //   auto userId = req.params().get<int>("id");
+  // });
   app.start();
 
   return 0;

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef EAGLE_CONNECTION_HPP
+#define EAGLE_CONNECTION_HPP
 
 #include <memory>
 
@@ -29,14 +30,17 @@ class connection final : public connection_interface,
 
  private:
   void handle_request_() {
-    http::async_read(socket_, buffer_, request_,
-                     [conn = shared_from_this()](
-                         beast::error_code ec, std::size_t bytes_transferred) {
-                       // TODO: The dispatcher could fail, what do we do?
-                       conn->dispatcher_.dispatch(conn->request_,
-                                                  conn->response_);
-                       conn->send_data();
-                     });
+    http::async_read(
+        socket_, buffer_, request_.raw(),
+        [conn = shared_from_this()](beast::error_code ec,
+                                    std::size_t bytes_transferred) {
+          auto peer_addrs =
+              conn->socket_.remote_endpoint().address().to_string();
+          conn->request_.peer(peer_addrs);
+          // TODO: The dispatcher could fail, what do we do?
+          conn->dispatcher_.dispatch(conn->request_, conn->response_);
+          conn->send_data();
+        });
   }
 
   void send_response_() {
@@ -66,3 +70,5 @@ class connection final : public connection_interface,
   net::steady_timer deadline_{socket_.get_executor(), std::chrono::seconds(10)};
 };
 };  // namespace eagle
+
+#endif  // EAGLE_CONNECTION_HPP

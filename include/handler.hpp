@@ -1,7 +1,6 @@
 #ifndef EAGLE_HANDLER_HPP
 #define EAGLE_HANDLER_HPP
 
-#include <glog/logging.h>
 #include <functional>
 #include <typeinfo>
 

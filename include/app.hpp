@@ -1,8 +1,6 @@
+#ifndef EAGLE_APP_HPP
+#define EAGLE_APP_HPP
 
-#pragma once
-
-#include <gflags/gflags.h>
-#include <glog/logging.h>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 
@@ -18,12 +16,15 @@
 
 namespace eagle {
 
-DEFINE_string(address, "127.0.0.1", "Server address");
-DEFINE_uint32(port, 3003, "Server port number");
-
 // Forward declaration of the `app` template class.
 template <typename ConnectionType = connection>
 class app;
+
+struct option {
+  std::string_view address_{"0.0.0.0"};
+  size_t port_{3000};
+  size_t thread_count_{3};
+};
 
 // Template deduction guide for the initialization. This tells the compiler,
 // that when you call an app constructor matching `app(int argc, char* argv[])`,
@@ -49,20 +50,20 @@ class app {
                 "ConnectionType should be final");
 
  public:
-  app(int argc, char* argv[]) : dispatcher_() {
-    gflags::ParseCommandLineFlags(&argc, &argv, false);
-    google::InitGoogleLogging(argv[0]);
-    google::InstallFailureSignalHandler();
-  }
+  app() = default;
 
   ~app() = default;
 
   // TODO: Return a system error code here so that cleints can write:
   // int main() { return app.start(); }
+  void start(const option app_options) {
+    start(app_options.address_, app_options.port_);
+  }
+
   void start(std::optional<std::string> address = {},
              std::optional<uint16_t> port = {}) {
-    server_address_ = address.value_or(FLAGS_address);
-    server_port_ = port.value_or(FLAGS_port);
+    server_address_ = address.value_or("0.0.0.0");
+    server_port_ = port.value_or(3000);
 
     tcp::acceptor acceptor{
         ioc_, {net::ip::make_address(server_address_), server_port_}};
@@ -112,3 +113,5 @@ class app {
 };
 
 }  // namespace eagle
+
+#endif  // EAGLE_APP_HPP

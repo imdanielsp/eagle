@@ -10,7 +10,7 @@ class DispatcherTest : public ::testing::Test {
  protected:
   void SetUp() override {
     request_.method(http::verb::get);
-    request_.set(http::field::host, "localhost");
+    request_.peer("localhost");
     request_.target("/endpoint");
   }
 

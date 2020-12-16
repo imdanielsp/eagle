@@ -85,6 +85,8 @@
     "fstream": "cpp",
     "queue": "cpp",
     "stack": "cpp",
-    "valarray": "cpp"
+    "valarray": "cpp",
+    "hash_map": "cpp",
+    "hash_set": "cpp"
   }
 }

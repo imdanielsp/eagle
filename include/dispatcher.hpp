@@ -1,4 +1,5 @@
-#pragma once
+#ifndef EAGLE_DISPATCHER_HPP
+#define EAGLE_DISPATCHER_HPP
 
 #include <array>
 #include <boost/range/adaptor/filtered.hpp>
@@ -223,9 +224,9 @@ class dispatcher : public dispatcher_interface {
     std::strftime(date_time.data(), date_time.size(), "%Y-%m-%d %H:%M:%S",
                   std::localtime(&now));
 
-    LOG(INFO) << req.at(http::field::host) << " - - [" << date_time << "] "
-              << req.method() << " " << req.target() << " " << req.version()
-              << " " << resp.result() << std::endl;
+    LOG(INFO) << req.peer() << " - - [" << date_time << "] " << req.method()
+              << " " << req.target() << " " << req.version() << " "
+              << resp.result() << std::endl;
   }
 
  private:
@@ -238,3 +239,5 @@ class dispatcher : public dispatcher_interface {
       interceptors_;
 };
 };  // namespace eagle
+
+#endif  // EAGLE_DISPATCHER_HPP
