@@ -10,6 +10,8 @@
 #include <unordered_map>
 
 #include "handler.hpp"
+#include "params.hpp"
+#include "resource_matcher.hpp"
 
 namespace eagle {
 
@@ -69,6 +71,76 @@ inline bool emit_emplace_error(std::optional<http::verb> method,
   return false;
 }
 
+namespace {
+std::tuple<params, std::string, bool> match_resource_descriptors(
+    const descriptor_list& ts,
+    const std::vector<std::string_view>& partials) {
+  params parameters;
+  if (ts.size() != partials.size()) {
+    return std::make_tuple(parameters, "", false);
+  }
+
+  for (size_t idx = 0; idx < ts.size(); idx++) {
+    auto tkn = ts.at(idx);
+    if (tkn.type == resource_descriptor_type::kdynamic) {
+      if (tkn.value_type == resource_descriptor_value_type::kinteger) {
+        try {
+          auto value = std::stoi(partials[idx].data());
+          parameters.set<int>(tkn.identifier, value);
+        } catch (...) {
+          return std::make_tuple(parameters, "", false);
+        }
+      } else if (tkn.value_type == resource_descriptor_value_type::kstring) {
+        parameters.set<std::string_view>(tkn.identifier, partials[idx]);
+      }
+    }
+  }
+
+  return std::make_tuple(
+      parameters, std::string(ts.path_view().data(), ts.path_view().size()),
+      true);
+}
+
+std::vector<std::string_view> split_endpoint(std::string_view endpoint) {
+  std::vector<std::string_view> partials;
+
+  size_t start = 1;
+  for (size_t end = start; end < endpoint.size(); end++) {
+    if (endpoint.at(end) == '/') {
+      partials.push_back(endpoint.substr(start, end - 1));
+      start = end + 1;
+    }
+  }
+
+  if (start != endpoint.size()) {
+    partials.push_back(endpoint.substr(start, endpoint.size()));
+  }
+
+  return partials;
+}
+template <typename ContainerType>
+std::tuple<params, std::string, bool> match_endpoint(
+    std::string_view endpoint,
+    const ContainerType& dispatch_table) {
+  auto path_partials = split_endpoint(endpoint);
+  for (const auto& [key, value] : dispatch_table) {
+    path_scanner scanner{key};
+    auto descriptors = scanner.scan();
+
+    if (descriptors.has_dynamic_descriptor()) {
+      auto [parameters, actual_endpoint, matched] =
+          match_resource_descriptors(descriptors, path_partials);
+      if (matched) {
+        return std::make_tuple(parameters, actual_endpoint, matched);
+      }
+    }
+  }
+
+  return std::make_tuple(params(),
+                         std::string(endpoint.data(), endpoint.size()), false);
+}
+}  // namespace
+
 template <typename H>
 struct handler_trait {};
 
@@ -84,6 +156,13 @@ struct handler_trait<handler_type> {
 
     bool register_handler(std::string_view endpoint,
                           std::reference_wrapper<handler_type> handler_ref) {
+      path_scanner scanner{endpoint};
+      auto descriptors = scanner.scan();
+
+      if (scanner.error()) {
+        return false;
+      }
+
       auto itr = dispatch_table_.find(endpoint);
       if (itr != dispatch_table_.end()) {
         // The handler is set and overwriting a handler is likely and error log
@@ -102,16 +181,25 @@ struct handler_trait<handler_type> {
 
     pair<optional<value_type>, bool> get_handler_for(
         optional<http::verb> method,
-        std::string_view endpoint) const {
-      auto itr = dispatch_table_.find(endpoint);
+        std::string_view endpoint,
+        params* pParams) const {
+      auto [parameters, actual_endpoint, matched] =
+          match_endpoint(endpoint, dispatch_table_);
+
+      auto itr = dispatch_table_.find(actual_endpoint);
       if (itr != dispatch_table_.end()) {
+        if (pParams) {
+          *pParams = parameters;
+        }
+
         return std::make_pair(itr->second, true);
       }
       return std::make_pair(std::nullopt, false);
     }
 
     bool has(optional<http::verb> method, std::string_view endpoint) const {
-      return dispatch_table_.count(endpoint) > 0;
+      auto [_, found_handler] = get_handler_for(method, endpoint, nullptr);
+      return found_handler;
     }
   };
 };
@@ -129,6 +217,13 @@ struct handler_trait<handler_fn_type> {
     bool register_handler(http::verb method,
                           std::string_view endpoint,
                           handler_fn_type handler) {
+      path_scanner scanner{endpoint};
+      auto descriptors = scanner.scan();
+
+      if (scanner.error()) {
+        return false;
+      }
+
       auto itr = dispatch_table_.find(endpoint);
       auto method_idx = get_index_for_verb(method);
 
@@ -160,10 +255,18 @@ struct handler_trait<handler_fn_type> {
 
     pair<optional<value_type>, bool> get_handler_for(
         optional<http::verb> method,
-        std::string_view endpoint) const {
-      auto itr = dispatch_table_.find(endpoint);
+        std::string_view endpoint,
+        params* pParams) const {
+      auto [parameters, actual_endpoint, matched] =
+          match_endpoint(endpoint, dispatch_table_);
+
+      auto itr = dispatch_table_.find(actual_endpoint);
       if (itr == dispatch_table_.end()) {
         return std::make_pair(std::nullopt, false);
+      }
+
+      if (pParams) {
+        *pParams = parameters;
       }
 
       auto handler_idx =
@@ -199,7 +302,7 @@ struct handler_trait<handler_fn_type> {
       }
 
       // We are looking for one particular handler (method, endpoint)
-      auto [_, found_handler] = get_handler_for(method, endpoint);
+      auto [_, found_handler] = get_handler_for(method, endpoint, nullptr);
       return found_handler;
     }
   };
@@ -232,10 +335,10 @@ class handler_registry {
     return impl_.register_handler(endpoint, handler_ref);
   }
 
-  pair<optional<value_type>, bool> get_handler_for(
-      optional<http::verb> method,
-      std::string_view endpoint) const {
-    return impl_.get_handler_for(method, endpoint);
+  pair<optional<value_type>, bool> get_handler_for(optional<http::verb> method,
+                                                   std::string_view endpoint,
+                                                   params& parameters) const {
+    return impl_.get_handler_for(method, endpoint, &parameters);
   }
 
   bool has(optional<http::verb> method, std::string_view endpoint) const {

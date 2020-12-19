@@ -32,7 +32,7 @@ class dispatcher_interface {
 
   virtual bool add_handler(std::string_view endpoint, handler_type& h_obj) = 0;
 
-  virtual bool dispatch(const request& request, response& response) = 0;
+  virtual bool dispatch(request& request, response& response) = 0;
 };
 
 class dispatcher : public dispatcher_interface {
@@ -54,7 +54,7 @@ class dispatcher : public dispatcher_interface {
     return install_object_handler_(endpoint, h_obj);
   }
 
-  bool dispatch(const request& req, response& resp) override {
+  bool dispatch(request& req, response& resp) override {
     execute_interceptors_with_(intercept_policy_before::value, req, resp);
 
     bool status = true;
@@ -62,14 +62,14 @@ class dispatcher : public dispatcher_interface {
         std::string_view(req.target().data(), req.target().size());
 
     if (has_object_handler_for_(target_endpoint)) {
-      auto [opt_object, _] =
-          handler_object_registry_.get_handler_for(all_method, target_endpoint);
-      status = dispatch_with_(opt_object.value().get(), req, resp);
+      auto [opt_handler, _] = handler_object_registry_.get_handler_for(
+          all_method, target_endpoint, req.params_ref());
+      status = dispatch_with_(opt_handler.value().get(), req, resp);
     } else if (has_function_handler_for_endpoint_and_method_(target_endpoint,
                                                              req.method())) {
-      auto [opt_handler_list, _] =
-          handler_fn_registry_.get_handler_for(req.method(), target_endpoint);
-      status = dispatch_with_(opt_handler_list.value(), req, resp);
+      auto [opt_handler, _] = handler_fn_registry_.get_handler_for(
+          req.method(), target_endpoint, req.params_ref());
+      status = dispatch_with_(opt_handler.value(), req, resp);
     } else if (has_at_least_one_function_handler_for_(target_endpoint)) {
       // If we are here it means that there isn't a object handler nor a
       // function handler for the (method, endpoint) pair, but there at least

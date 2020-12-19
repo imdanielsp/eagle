@@ -14,6 +14,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandler) {
 
 TEST(HandlerRegistryTest, RegisterFunctionHandlersForSameURI) {
   eagle::handler_registry<eagle::handler_fn_type> registry;
+  eagle::params p;
   {
     auto result = registry.register_handler(
         http::verb::get, "/some-endpoint",
@@ -21,7 +22,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandlersForSameURI) {
     EXPECT_TRUE(result);
 
     auto [opt_handler, status] =
-        registry.get_handler_for(http::verb::get, "/some-endpoint");
+        registry.get_handler_for(http::verb::get, "/some-endpoint", p);
     EXPECT_TRUE(status);
     EXPECT_TRUE(opt_handler.has_value());
   }
@@ -33,7 +34,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandlersForSameURI) {
     EXPECT_TRUE(result);
 
     auto [opt_handler, status] =
-        registry.get_handler_for(http::verb::post, "/some-endpoint");
+        registry.get_handler_for(http::verb::post, "/some-endpoint", p);
     EXPECT_TRUE(status);
     EXPECT_TRUE(opt_handler.has_value());
   }
@@ -45,7 +46,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandlersForSameURI) {
     EXPECT_TRUE(result);
 
     auto [opt_handler, status] =
-        registry.get_handler_for(http::verb::put, "/some-endpoint");
+        registry.get_handler_for(http::verb::put, "/some-endpoint", p);
     EXPECT_TRUE(status);
     EXPECT_TRUE(opt_handler.has_value());
   }
@@ -57,7 +58,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandlersForSameURI) {
     EXPECT_TRUE(result);
 
     auto [opt_handler, status] =
-        registry.get_handler_for(http::verb::delete_, "/some-endpoint");
+        registry.get_handler_for(http::verb::delete_, "/some-endpoint", p);
     EXPECT_TRUE(status);
     EXPECT_TRUE(opt_handler.has_value());
   }
@@ -79,7 +80,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandlerTwiceForSameEndpoint) {
 
 TEST(HandlerRegistryTest, GetRegisteredHandler) {
   eagle::handler_registry<eagle::handler_fn_type> registry;
-
+  eagle::params p;
   auto result = registry.register_handler(
       http::verb::get, "/some-endpoint",
       [](const auto&, auto&) -> bool { return true; });
@@ -87,13 +88,13 @@ TEST(HandlerRegistryTest, GetRegisteredHandler) {
 
   {
     auto [opt_handler, status] =
-        registry.get_handler_for(http::verb::get, "/some-endpoint");
+        registry.get_handler_for(http::verb::get, "/some-endpoint", p);
     EXPECT_TRUE(status);
     EXPECT_TRUE(opt_handler.has_value());
   }
   {
     auto [opt_handler, status] =
-        registry.get_handler_for(http::verb::post, "/some-endpoint");
+        registry.get_handler_for(http::verb::post, "/some-endpoint", p);
     EXPECT_FALSE(status);
     EXPECT_FALSE(opt_handler.has_value());
   }
@@ -101,8 +102,9 @@ TEST(HandlerRegistryTest, GetRegisteredHandler) {
 
 TEST(HandlerRegistryTest, GetUnRegisteredFunctionHandler) {
   eagle::handler_registry<eagle::handler_fn_type> registry;
+  eagle::params p;
   auto [opt_handler, status] =
-      registry.get_handler_for(http::verb::get, "/some-endpoint");
+      registry.get_handler_for(http::verb::get, "/some-endpoint", p);
   EXPECT_FALSE(status);
   EXPECT_FALSE(opt_handler.has_value());
 }
@@ -115,9 +117,9 @@ TEST(HandlerRegistryTest, GetUnsupportedMethodForFunctionHandler) {
         [](const auto&, auto&) -> bool { return true; });
     EXPECT_TRUE(result);
   }
-
+  eagle::params p;
   auto [opt_handler, result] =
-      registry.get_handler_for(http::verb::head, "/some-endpoint");
+      registry.get_handler_for(http::verb::head, "/some-endpoint", p);
   EXPECT_FALSE(result);
   EXPECT_FALSE(opt_handler.has_value());
 }
@@ -128,9 +130,9 @@ TEST(HandlerRegistryTest, RegisterObjectHandler) {
 
   auto result = registry.register_handler("/some-endpoint", mock_handler);
   EXPECT_TRUE(result);
-
+  eagle::params p;
   auto [opt_handler, status] =
-      registry.get_handler_for(eagle::all_method, "/some-endpoint");
+      registry.get_handler_for(eagle::all_method, "/some-endpoint", p);
   EXPECT_TRUE(status);
   EXPECT_TRUE(opt_handler.has_value());
 }
@@ -144,17 +146,18 @@ TEST(HandlerRegistryTest, RegisterObjectHandlerTwiceForSameEndpoint) {
 
   result = registry.register_handler("/some-endpoint", mock_handler);
   EXPECT_FALSE(result);
-
+  eagle::params p;
   auto [opt_handler, status] =
-      registry.get_handler_for(eagle::all_method, "/some-endpoint");
+      registry.get_handler_for(eagle::all_method, "/some-endpoint", p);
   EXPECT_TRUE(status);
   EXPECT_TRUE(opt_handler.has_value());
 }
 
 TEST(HandlerRegistryTest, GetUnRegisteredObjectHandler) {
   eagle::handler_registry<eagle::handler_type> registry;
+  eagle::params p;
   auto [opt_handler, status] =
-      registry.get_handler_for(http::verb::get, "/some-endpoint");
+      registry.get_handler_for(http::verb::get, "/some-endpoint", p);
   EXPECT_FALSE(status);
   EXPECT_FALSE(opt_handler.has_value());
 }
@@ -181,4 +184,33 @@ TEST(HandlerRegistryTest, HasObjectHandler) {
   EXPECT_TRUE(registry.has(http::verb::put, "/some-endpoint"));
   EXPECT_TRUE(registry.has(http::verb::delete_, "/some-endpoint"));
   EXPECT_TRUE(registry.has(eagle::all_method, "/some-endpoint"));
+}
+
+TEST(HandlerRegistryTest, RegisterWithDynamicPathInteger) {
+  eagle::handler_registry<eagle::handler_fn_type> registry;
+  auto result = registry.register_handler(
+      http::verb::get, "/some/{integer:id}",
+      [](const auto&, auto&) -> bool { return true; });
+  EXPECT_TRUE(result);
+
+  eagle::params p;
+  auto [handler, status] =
+      registry.get_handler_for(http::verb::get, "/some/1234", p);
+  EXPECT_TRUE(status);
+}
+
+TEST(HandlerRegistryTest, RegisterWithDynamicPathString) {
+  eagle::handler_registry<eagle::handler_fn_type> registry;
+  auto result = registry.register_handler(
+      http::verb::get, "/some/{string:id}",
+      [](const auto&, auto&) -> bool { return true; });
+  EXPECT_TRUE(result);
+}
+
+TEST(HandlerRegistryTest, RegisterWithDynamicPathUnsupportedValueType) {
+  eagle::handler_registry<eagle::handler_fn_type> registry;
+  auto result = registry.register_handler(
+      http::verb::get, "/some/{badtype:id}",
+      [](const auto&, auto&) -> bool { return true; });
+  EXPECT_FALSE(result);
 }

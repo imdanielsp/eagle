@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
   app.handle(http::verb::get, "/hello-eagle",
              [](const auto& req, auto& resp) -> bool {
                resp.set(http::field::content_type, "text/html");
-               beast::ostream(resp.body()) << "<h1>Eagle!</h1>";
+               beast::ostream(resp.body()) << "<h1>Hello Eagle! &#x1F985</h1>";
                return true;
              });
 
@@ -52,9 +52,25 @@ int main(int argc, char* argv[]) {
   h handler;
   app.handle("/api/v1/users", handler);
 
-  // app.handle("/user/{int:id}", [](const auto& req, auto& resp) {
-  //   auto userId = req.params().get<int>("id");
-  // });
+  app.handle(http::verb::get, "/user/{integer:id}",
+             [](const auto& req, auto& resp) -> bool {
+               auto userId = req.params().template get<int>("id");
+               resp.set(http::field::content_type, "text/html");
+               beast::ostream(resp.body())
+                   << "<h3>User id: " << userId << "</h3>";
+               return true;
+             });
+
+  app.handle(http::verb::get, "/user/{integer:id}/type/{string:t}",
+             [](const auto& req, auto& resp) -> bool {
+               auto userId = req.params().template get<int>("id");
+               auto type = req.params().template get<std::string_view>("t");
+               resp.set(http::field::content_type, "text/html");
+               beast::ostream(resp.body())
+                   << "<h3>User id: " << userId << " type: " << type << "</h3>";
+               return true;
+             });
+
   app.start();
 
   return 0;

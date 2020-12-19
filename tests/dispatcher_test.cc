@@ -32,6 +32,24 @@ TEST_F(DispatcherTest, DispatchGetHandlerFn) {
   ASSERT_EQ(response_.result(), http::status::ok);
 }
 
+TEST_F(DispatcherTest, DispatchGetHandlerFnWithResourceId) {
+  request_.method(http::verb::get);
+  auto result = dispatcher_.add_handler(
+      http::verb::get, "/user/{integer:id}/{string:query}",
+      [](const auto& req, auto& resp) { return true; });
+  EXPECT_TRUE(result);
+
+  request_.target("/user/123/test");
+  result = dispatcher_.dispatch(request_, response_);
+
+  EXPECT_TRUE(result);
+  EXPECT_EQ(response_.result(), http::status::ok);
+
+  auto params = request_.params();
+  EXPECT_EQ(params.get<int>("id"), 123);
+  EXPECT_EQ(params.get<std::string_view>("query"), "test");
+}
+
 TEST_F(DispatcherTest, DispatchPostHandlerFn) {
   request_.method(http::verb::post);
   auto result =
@@ -111,6 +129,33 @@ TEST_F(DispatcherTest, DispatchWithHandlerObject) {
   result = dispatcher_.dispatch(request_, response_);
   EXPECT_TRUE(result);
   EXPECT_EQ(response_.result(), http::status::ok);
+}
+
+TEST_F(DispatcherTest, DispatchHandlerObjectWithResourceId) {
+  request_.target("/api/v1/users/1234/test");
+
+  HandlerMock users_api;
+  auto result = dispatcher_.add_handler(
+      "/api/v1/users/{integer:id}/{string:query}", users_api);
+  EXPECT_TRUE(result);
+
+  request_.method(http::verb::get);
+  EXPECT_CALL(users_api, get(_, _))
+      .Times(testing::AtLeast(1))
+      .WillOnce(testing::Return(true));
+  result = dispatcher_.dispatch(request_, response_);
+  EXPECT_TRUE(result);
+  EXPECT_EQ(response_.result(), http::status::ok);
+
+  EXPECT_EQ(request_.params().get<int>("id"), 1234);
+  EXPECT_EQ(request_.params().get<std::string_view>("query"), "test");
+
+  EXPECT_THROW(request_.params().get<int>("query"), eagle::invalid_param_cast);
+  EXPECT_THROW(request_.params().get<std::string_view>("id"),
+               eagle::invalid_param_cast);
+  EXPECT_THROW(request_.params().get<int>("random"), eagle::param_not_found);
+  EXPECT_THROW(request_.params().get<std::string_view>("random"),
+               eagle::param_not_found);
 }
 
 TEST_F(DispatcherTest, NotFound) {
