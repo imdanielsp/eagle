@@ -14,7 +14,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandler) {
 
 TEST(HandlerRegistryTest, RegisterFunctionHandlersForSameURI) {
   eagle::handler_registry<eagle::handler_fn_type> registry;
-  eagle::params p;
+  eagle::request_arguments p;
   {
     auto result = registry.register_handler(
         http::verb::get, "/some-endpoint",
@@ -80,7 +80,7 @@ TEST(HandlerRegistryTest, RegisterFunctionHandlerTwiceForSameEndpoint) {
 
 TEST(HandlerRegistryTest, GetRegisteredHandler) {
   eagle::handler_registry<eagle::handler_fn_type> registry;
-  eagle::params p;
+  eagle::request_arguments p;
   auto result = registry.register_handler(
       http::verb::get, "/some-endpoint",
       [](const auto&, auto&) -> bool { return true; });
@@ -102,7 +102,7 @@ TEST(HandlerRegistryTest, GetRegisteredHandler) {
 
 TEST(HandlerRegistryTest, GetUnRegisteredFunctionHandler) {
   eagle::handler_registry<eagle::handler_fn_type> registry;
-  eagle::params p;
+  eagle::request_arguments p;
   auto [opt_handler, status] =
       registry.get_handler_for(http::verb::get, "/some-endpoint", p);
   EXPECT_FALSE(status);
@@ -117,7 +117,7 @@ TEST(HandlerRegistryTest, GetUnsupportedMethodForFunctionHandler) {
         [](const auto&, auto&) -> bool { return true; });
     EXPECT_TRUE(result);
   }
-  eagle::params p;
+  eagle::request_arguments p;
   auto [opt_handler, result] =
       registry.get_handler_for(http::verb::head, "/some-endpoint", p);
   EXPECT_FALSE(result);
@@ -130,7 +130,7 @@ TEST(HandlerRegistryTest, RegisterObjectHandler) {
 
   auto result = registry.register_handler("/some-endpoint", mock_handler);
   EXPECT_TRUE(result);
-  eagle::params p;
+  eagle::request_arguments p;
   auto [opt_handler, status] =
       registry.get_handler_for(eagle::all_method, "/some-endpoint", p);
   EXPECT_TRUE(status);
@@ -146,7 +146,7 @@ TEST(HandlerRegistryTest, RegisterObjectHandlerTwiceForSameEndpoint) {
 
   result = registry.register_handler("/some-endpoint", mock_handler);
   EXPECT_FALSE(result);
-  eagle::params p;
+  eagle::request_arguments p;
   auto [opt_handler, status] =
       registry.get_handler_for(eagle::all_method, "/some-endpoint", p);
   EXPECT_TRUE(status);
@@ -155,7 +155,7 @@ TEST(HandlerRegistryTest, RegisterObjectHandlerTwiceForSameEndpoint) {
 
 TEST(HandlerRegistryTest, GetUnRegisteredObjectHandler) {
   eagle::handler_registry<eagle::handler_type> registry;
-  eagle::params p;
+  eagle::request_arguments p;
   auto [opt_handler, status] =
       registry.get_handler_for(http::verb::get, "/some-endpoint", p);
   EXPECT_FALSE(status);
@@ -193,7 +193,7 @@ TEST(HandlerRegistryTest, RegisterWithDynamicPathInteger) {
       [](const auto&, auto&) -> bool { return true; });
   EXPECT_TRUE(result);
 
-  eagle::params p;
+  eagle::request_arguments p;
   auto [handler, status] =
       registry.get_handler_for(http::verb::get, "/some/1234", p);
   EXPECT_TRUE(status);

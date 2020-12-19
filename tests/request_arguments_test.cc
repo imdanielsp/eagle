@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "params.hpp"
+#include "request_arguments.hpp"
 
-TEST(ParamsTest, ParamsSetAndGet) {
-  eagle::params parameters;
+TEST(RequestArgumentsTest, ArgumentsSetAndGet) {
+  eagle::request_arguments parameters;
   parameters.set("test", 1234);
   parameters.set<std::string_view>("test2", "string_value");
 
@@ -11,18 +11,18 @@ TEST(ParamsTest, ParamsSetAndGet) {
   EXPECT_EQ(parameters.get<std::string_view>("test2"), "string_value");
 }
 
-TEST(ParamsTest, ParamsExceptions) {
-  eagle::params parameters;
+TEST(RequestArgumentsTest, ArgumentsExceptions) {
+  eagle::request_arguments parameters;
   parameters.set("id", 1234);
   parameters.set<std::string_view>("query", "test");
 
   EXPECT_EQ(parameters.get<int>("id"), 1234);
   EXPECT_EQ(parameters.get<std::string_view>("query"), "test");
 
-  EXPECT_THROW(parameters.get<int>("query"), eagle::invalid_param_cast);
+  EXPECT_THROW(parameters.get<int>("query"), eagle::invalid_argument_cast);
   EXPECT_THROW(parameters.get<std::string_view>("id"),
-               eagle::invalid_param_cast);
-  EXPECT_THROW(parameters.get<int>("random"), eagle::param_not_found);
+               eagle::invalid_argument_cast);
+  EXPECT_THROW(parameters.get<int>("random"), eagle::argument_not_found);
   EXPECT_THROW(parameters.get<std::string_view>("random"),
-               eagle::param_not_found);
+               eagle::argument_not_found);
 }

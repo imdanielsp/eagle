@@ -45,9 +45,9 @@ TEST_F(DispatcherTest, DispatchGetHandlerFnWithResourceId) {
   EXPECT_TRUE(result);
   EXPECT_EQ(response_.result(), http::status::ok);
 
-  auto params = request_.params();
-  EXPECT_EQ(params.get<int>("id"), 123);
-  EXPECT_EQ(params.get<std::string_view>("query"), "test");
+  auto args = request_.args();
+  EXPECT_EQ(args.get<int>("id"), 123);
+  EXPECT_EQ(args.get<std::string_view>("query"), "test");
 }
 
 TEST_F(DispatcherTest, DispatchPostHandlerFn) {
@@ -147,15 +147,15 @@ TEST_F(DispatcherTest, DispatchHandlerObjectWithResourceId) {
   EXPECT_TRUE(result);
   EXPECT_EQ(response_.result(), http::status::ok);
 
-  EXPECT_EQ(request_.params().get<int>("id"), 1234);
-  EXPECT_EQ(request_.params().get<std::string_view>("query"), "test");
+  EXPECT_EQ(request_.args().get<int>("id"), 1234);
+  EXPECT_EQ(request_.args().get<std::string_view>("query"), "test");
 
-  EXPECT_THROW(request_.params().get<int>("query"), eagle::invalid_param_cast);
-  EXPECT_THROW(request_.params().get<std::string_view>("id"),
-               eagle::invalid_param_cast);
-  EXPECT_THROW(request_.params().get<int>("random"), eagle::param_not_found);
-  EXPECT_THROW(request_.params().get<std::string_view>("random"),
-               eagle::param_not_found);
+  EXPECT_THROW(request_.args().get<int>("query"), eagle::invalid_argument_cast);
+  EXPECT_THROW(request_.args().get<std::string_view>("id"),
+               eagle::invalid_argument_cast);
+  EXPECT_THROW(request_.args().get<int>("random"), eagle::argument_not_found);
+  EXPECT_THROW(request_.args().get<std::string_view>("random"),
+               eagle::argument_not_found);
 }
 
 TEST_F(DispatcherTest, NotFound) {

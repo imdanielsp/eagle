@@ -1,5 +1,5 @@
-#ifndef EAGLE_PARAMS_HPP
-#define EAGLE_PARAMS_HPP
+#ifndef EAGLE_REQUEST_ARGUMENTS_HPP
+#define EAGLE_REQUEST_ARGUMENTS_HPP
 
 #include <exception>
 #include <string>
@@ -8,13 +8,11 @@
 #include <unordered_map>
 #include <variant>
 
-#include <boost/format.hpp>
-
 namespace eagle {
 
-class param_not_found : public std::exception {
+class argument_not_found : public std::exception {
  public:
-  param_not_found(std::string_view key) : key_(key.data(), key.size()) {}
+  argument_not_found(std::string_view key) : key_(key.data(), key.size()) {}
 
   const char* what() const noexcept override {
     output_ = key_ + " is not in the parameters list";
@@ -26,28 +24,28 @@ class param_not_found : public std::exception {
   std::string key_;
 };
 
-class invalid_param_cast : public std::exception {};
+class invalid_argument_cast : public std::exception {};
 
-class params final {
+class request_arguments final {
  public:
-  params() = default;
-  ~params() = default;
+  request_arguments() = default;
+  ~request_arguments() = default;
 
   template <typename ValueType>
   const ValueType& get(std::string key) const {
     static_assert(std::is_same<ValueType, std::string_view>::value ||
                       std::is_same<ValueType, int>::value,
                   "Only strings and integers are supported");
-    auto itr = params_.find(key);
-    if (itr == params_.end()) {
-      throw param_not_found(key);
+    auto itr = arguments_.find(key);
+    if (itr == arguments_.end()) {
+      throw argument_not_found(key);
     }
 
     try {
       const auto& value = std::get<ValueType>(itr->second);
       return value;
     } catch (...) {
-      throw invalid_param_cast();
+      throw invalid_argument_cast();
     }
   }
 
@@ -57,12 +55,13 @@ class params final {
                       std::is_same<ValueType, int>::value,
                   "Only strings and integers are supported");
 
-    params_.insert({key, value});
+    arguments_.insert({key, value});
   }
 
  private:
-  std::unordered_map<std::string, std::variant<int, std::string_view>> params_;
+  std::unordered_map<std::string, std::variant<int, std::string_view>>
+      arguments_;
 };
 
 }  // namespace eagle
-#endif  // EAGLE_PARAMS_HPP
+#endif  // EAGLE_REQUEST_ARGUMENTS_HPP

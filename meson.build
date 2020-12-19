@@ -15,7 +15,7 @@ src = [
   'src/handler.cc',
   'src/request.cc',
   'src/resource_matcher.cc',
-  'src/params.cc'
+  'src/request_arguments.cc'
 ]
 
 lib = library('eagle',
@@ -48,7 +48,7 @@ tests_src = [
   'tests/handler_test.cc',
   'tests/handler_registry_test.cc',
   'tests/resource_matcher_test.cc',
-  'tests/params_test.cc'
+  'tests/request_arguments_test.cc'
 ]
 
 test_exec = executable('eagle_test', 

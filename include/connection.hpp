@@ -31,7 +31,7 @@ class connection final : public connection_interface,
  private:
   void handle_request_() {
     http::async_read(
-        socket_, buffer_, request_.raw(),
+        socket_, buffer_, request_.buffer(),
         [conn = shared_from_this()](beast::error_code ec,
                                     std::size_t bytes_transferred) {
           auto peer_addrs =

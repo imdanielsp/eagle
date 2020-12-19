@@ -2,7 +2,8 @@
 #define EAGLE_REQUEST_HPP
 
 #include <boost/beast.hpp>
-#include "params.hpp"
+
+#include "request_arguments.hpp"
 
 namespace beast = boost::beast;  // from <boost/beast.hpp>
 namespace http = beast::http;    // from <boost/beast/http.hpp>
@@ -43,14 +44,12 @@ class request final {
 
   unsigned int version() const { return request_.version(); }
 
-  auto& raw() { return request_; }
+  auto& buffer() { return request_; }
 
-  const auto& params() const { return params_; }
-
-  auto& params_ref() { return params_; }
+  auto& args() { return arguments_; }
 
  private:
-  class params params_;
+  request_arguments arguments_;
   http::request<http::dynamic_body> request_;
   std::string_view peer_;
 };

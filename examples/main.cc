@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 
   app.handle(http::verb::get, "/user/{integer:id}",
              [](const auto& req, auto& resp) -> bool {
-               auto userId = req.params().template get<int>("id");
+               auto userId = req.request_arguments().template get<int>("id");
                resp.set(http::field::content_type, "text/html");
                beast::ostream(resp.body())
                    << "<h3>User id: " << userId << "</h3>";
@@ -63,8 +63,8 @@ int main(int argc, char* argv[]) {
 
   app.handle(http::verb::get, "/user/{integer:id}/type/{string:t}",
              [](const auto& req, auto& resp) -> bool {
-               auto userId = req.params().template get<int>("id");
-               auto type = req.params().template get<std::string_view>("t");
+               auto userId = req.request_arguments().template get<int>("id");
+               auto type = req.request_arguments().template get<std::string_view>("t");
                resp.set(http::field::content_type, "text/html");
                beast::ostream(resp.body())
                    << "<h3>User id: " << userId << " type: " << type << "</h3>";

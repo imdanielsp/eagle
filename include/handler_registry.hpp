@@ -10,7 +10,7 @@
 #include <unordered_map>
 
 #include "handler.hpp"
-#include "params.hpp"
+#include "request_arguments.hpp"
 #include "resource_matcher.hpp"
 
 namespace eagle {
@@ -72,10 +72,10 @@ inline bool emit_emplace_error(std::optional<http::verb> method,
 }
 
 namespace {
-std::tuple<params, std::string, bool> match_resource_descriptors(
+std::tuple<request_arguments, std::string, bool> match_resource_descriptors(
     const descriptor_list& ts,
     const std::vector<std::string_view>& partials) {
-  params parameters;
+  request_arguments parameters;
   if (ts.size() != partials.size()) {
     return std::make_tuple(parameters, "", false);
   }
@@ -119,7 +119,7 @@ std::vector<std::string_view> split_endpoint(std::string_view endpoint) {
   return partials;
 }
 template <typename ContainerType>
-std::tuple<params, std::string, bool> match_endpoint(
+std::tuple<request_arguments, std::string, bool> match_endpoint(
     std::string_view endpoint,
     const ContainerType& dispatch_table) {
   auto path_partials = split_endpoint(endpoint);
@@ -136,7 +136,7 @@ std::tuple<params, std::string, bool> match_endpoint(
     }
   }
 
-  return std::make_tuple(params(),
+  return std::make_tuple(request_arguments(),
                          std::string(endpoint.data(), endpoint.size()), false);
 }
 }  // namespace
@@ -182,7 +182,7 @@ struct handler_trait<handler_type> {
     pair<optional<value_type>, bool> get_handler_for(
         optional<http::verb> method,
         std::string_view endpoint,
-        params* pParams) const {
+        request_arguments* pParams) const {
       auto [parameters, actual_endpoint, matched] =
           match_endpoint(endpoint, dispatch_table_);
 
@@ -256,7 +256,7 @@ struct handler_trait<handler_fn_type> {
     pair<optional<value_type>, bool> get_handler_for(
         optional<http::verb> method,
         std::string_view endpoint,
-        params* pParams) const {
+        request_arguments* pParams) const {
       auto [parameters, actual_endpoint, matched] =
           match_endpoint(endpoint, dispatch_table_);
 
@@ -335,9 +335,10 @@ class handler_registry {
     return impl_.register_handler(endpoint, handler_ref);
   }
 
-  pair<optional<value_type>, bool> get_handler_for(optional<http::verb> method,
-                                                   std::string_view endpoint,
-                                                   params& parameters) const {
+  pair<optional<value_type>, bool> get_handler_for(
+      optional<http::verb> method,
+      std::string_view endpoint,
+      request_arguments& parameters) const {
     return impl_.get_handler_for(method, endpoint, &parameters);
   }
 

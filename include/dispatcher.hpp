@@ -63,12 +63,12 @@ class dispatcher : public dispatcher_interface {
 
     if (has_object_handler_for_(target_endpoint)) {
       auto [opt_handler, _] = handler_object_registry_.get_handler_for(
-          all_method, target_endpoint, req.params_ref());
+          all_method, target_endpoint, req.args());
       status = dispatch_with_(opt_handler.value().get(), req, resp);
     } else if (has_function_handler_for_endpoint_and_method_(target_endpoint,
                                                              req.method())) {
       auto [opt_handler, _] = handler_fn_registry_.get_handler_for(
-          req.method(), target_endpoint, req.params_ref());
+          req.method(), target_endpoint, req.args());
       status = dispatch_with_(opt_handler.value(), req, resp);
     } else if (has_at_least_one_function_handler_for_(target_endpoint)) {
       // If we are here it means that there isn't a object handler nor a
