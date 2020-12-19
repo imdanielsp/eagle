@@ -30,8 +30,8 @@ lib = library('eagle',
                    boost_dep
               ])
 
-exe = executable('eagle',
-                 'src/main.cc',
+exe = executable('eagle_example',
+                 'examples/main.cc',
                  cpp_args : [
                    '-std=c++17',
                  ],
