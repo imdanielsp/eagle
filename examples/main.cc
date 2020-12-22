@@ -7,9 +7,8 @@ class h : public eagle::stateful_handler_base {
   virtual ~h() {}
 
   bool get(const eagle::request&, eagle::response& resp) override {
-    resp.set(http::field::content_type, "text/html");
-    boost::beast::ostream(resp.body())
-        << "Dispatched by the handler object! Count " << state_.count_++;
+    resp.html() << "<p>Dispatched by the handler object! Count "
+                << state_.count_++ << "</p>";
     return true;
   }
 
@@ -32,20 +31,17 @@ int main(int argc, char* argv[]) {
 
   app.handle(http::verb::get, "/hello-eagle",
              [](const auto& req, auto& resp) -> bool {
-               resp.set(http::field::content_type, "text/html");
-               beast::ostream(resp.body()) << "<h1>Hello Eagle! &#x1F985</h1>";
+               resp.html() << "<h1>Hello Eagle! &#x1F985</h1>";
                return true;
              });
 
   app.handle(http::verb::post, "/hello-eagle", [](const auto& req, auto& resp) {
-    resp.set(http::field::content_type, "text/html");
-    beast::ostream(resp.body()) << "<h1>Some error happen</h1>";
+    resp.html() << "<h1>Some error happen</h1>";
     return false;
   });
 
   app.handle(http::verb::get, "/json", [](const auto& req, auto& resp) {
-    resp.set(http::field::content_type, "application/json");
-    beast::ostream(resp.body()) << "{ \"id\": 1234 }";
+    resp.json() << "{ \"id\": 1234 }";
     return true;
   });
 
@@ -54,20 +50,17 @@ int main(int argc, char* argv[]) {
 
   app.handle(http::verb::get, "/user/{integer:id}",
              [](const auto& req, auto& resp) -> bool {
-               auto userId = req.request_arguments().template get<int>("id");
-               resp.set(http::field::content_type, "text/html");
-               beast::ostream(resp.body())
-                   << "<h3>User id: " << userId << "</h3>";
+               auto userId = req.args().template get<int>("id");
+               resp.html() << "<h3>User id: " << userId << "</h1>";
                return true;
              });
 
   app.handle(http::verb::get, "/user/{integer:id}/type/{string:t}",
              [](const auto& req, auto& resp) -> bool {
-               auto userId = req.request_arguments().template get<int>("id");
-               auto type = req.request_arguments().template get<std::string_view>("t");
-               resp.set(http::field::content_type, "text/html");
-               beast::ostream(resp.body())
-                   << "<h3>User id: " << userId << " type: " << type << "</h3>";
+               auto userId = req.args().template get<int>("id");
+               auto type = req.args().template get<std::string_view>("t");
+               resp.html() << "<h3>User id: " << userId << " type: " << type
+                           << "</h3>";
                return true;
              });
 

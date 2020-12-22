@@ -21,8 +21,6 @@ class request final {
  public:
   request() = default;
 
-  request(http::request<http::dynamic_body>&& req) : request_(std::move(req)) {}
-
   ~request() = default;
 
   std::string_view target() const {
@@ -46,7 +44,9 @@ class request final {
 
   auto& buffer() { return request_; }
 
-  auto& args() { return arguments_; }
+  const request_arguments& args() const { return arguments_; }
+
+  void args(request_arguments&& req_args) { arguments_ = std::move(req_args); }
 
  private:
   request_arguments arguments_;

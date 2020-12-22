@@ -44,9 +44,8 @@ class connection final : public connection_interface,
   }
 
   void send_response_() {
-    response_.content_length(response_.body().size());
     http::async_write(
-        socket_, response_,
+        socket_, response_.buffer(),
         [conn = shared_from_this()](beast::error_code ec, std::size_t) {
           conn->socket_.shutdown(tcp::socket::shutdown_send, ec);
           conn->deadline_.cancel();

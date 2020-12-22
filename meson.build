@@ -38,6 +38,14 @@ exe = executable('eagle_example',
                  include_directories : include_dir,
                  link_with : lib)
 
+benchmark = executable('eagle_benchmark',
+                       'examples/benchmark.cc',
+                       cpp_args : [
+                         '-std=c++17'
+                       ],
+                      include_directories : include_dir,
+                      link_with : lib)
+
 gtest_proj = subproject('gtest')
 gtest_dep = gtest_proj.get_variable('gtest_dep')
 gmock_dep = gtest_proj.get_variable('gmock_dep')
@@ -48,7 +56,8 @@ tests_src = [
   'tests/handler_test.cc',
   'tests/handler_registry_test.cc',
   'tests/resource_matcher_test.cc',
-  'tests/request_arguments_test.cc'
+  'tests/request_arguments_test.cc',
+  'tests/response_test.cc'
 ]
 
 test_exec = executable('eagle_test', 

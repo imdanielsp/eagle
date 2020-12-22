@@ -14,8 +14,7 @@ int main(argc, argv) {
   
   app.handle(http::verb::get, "/hello-eagle",
            [](const auto& req, auto& resp) -> bool {
-             resp.set(http::field::content_type, "text/html");
-             beast::ostream(resp.body()) << "<h1>Eagle!</h1>";
+             resp.html() << "<h1>Eagle!</h1>";
              return true;
            });
 
@@ -38,9 +37,8 @@ class h : public eagle::handler_object {
   virtual ~h() {}
 
   bool get(const eagle::request&, eagle::response& resp) override {
-    resp.set(http::field::content_type, "text/html");
-    boost::beast::ostream(resp.body())
-        << "Dispatched by the handler object! Count " << state_.count_++;
+    resp.html()
+        << "<p>Dispatched by the handler object! Count " << state_.count_++ << "</p>";
     return true;
   }
 
