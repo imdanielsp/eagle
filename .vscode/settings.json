@@ -80,6 +80,14 @@
     "*.ipp": "cpp",
     "strstream": "cpp",
     "unordered_set": "cpp",
-    "forward_list": "cpp"
+    "forward_list": "cpp",
+    "filesystem": "cpp",
+    "fstream": "cpp",
+    "queue": "cpp",
+    "stack": "cpp",
+    "valarray": "cpp",
+    "hash_map": "cpp",
+    "hash_set": "cpp",
+    "memory_resource": "cpp"
   }
 }

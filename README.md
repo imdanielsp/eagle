@@ -1,4 +1,5 @@
-![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg)[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle?ref=badge_shield)
+![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle?ref=badge_shield)
 
 # Eagle
 A Minimalistic C++ Web Framework build on top of Boost Beast and ASIO
@@ -15,14 +16,13 @@ int main(argc, argv) {
   
   app.handle(http::verb::get, "/hello-eagle",
            [](const auto& req, auto& resp) -> bool {
-             resp.set(http::field::content_type, "text/html");
-             beast::ostream(resp.body()) << "<h1>Eagle!</h1>";
+             resp.html() << "<h1>Eagle!</h1>";
              return true;
            });
 
-app.start();
+  app.start();
 
-return 0;
+  return 0;
 }
 ```
 
@@ -39,9 +39,8 @@ class h : public eagle::handler_object {
   virtual ~h() {}
 
   bool get(const eagle::request&, eagle::response& resp) override {
-    resp.set(http::field::content_type, "text/html");
-    boost::beast::ostream(resp.body())
-        << "Dispatched by the handler object! Count " << state_.count_++;
+    resp.html()
+        << "<p>Dispatched by the handler object! Count " << state_.count_++ << "</p>";
     return true;
   }
 
@@ -61,6 +60,7 @@ int main(argc, argv) {
   app.start();
 
   return 0;
+}
 ```
 
 ## Building
