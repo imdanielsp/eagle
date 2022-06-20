@@ -1,4 +1,6 @@
-![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg) [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle?ref=badge_shield)
+![Eagle CI Build](https://github.com/imdanielsp/eagle/workflows/Eagle%20CI%20Build/badge.svg)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle?ref=badge_shield)
+
 # Eagle
 A Minimalistic C++ Web Framework build on top of Boost Beast and ASIO
 
@@ -86,3 +88,7 @@ Eagle's design principles are focus towards REST, the following methods are inhe
 - Resource Id mapping
 - Query parameters
 - TBD
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fimdanielsp%2Feagle?ref=badge_large)
